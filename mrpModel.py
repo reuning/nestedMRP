@@ -138,7 +138,7 @@ def getLinearPropensity(indexes_,effects,mainEffectsLabels,higherOrderEffectsLab
     return eta
 
 class mrpNestedModel2:
-    def __init__(self,poll,poll2,intOrder,iName):
+    def __init__(self,poll,poll2,intOrder,iName, infVar = None):
         mainEffectsLabels  = poll.mainEffectsLabels
         uniq_survey_df     = poll.uniq_survey_df
         df                 = poll.df
@@ -198,7 +198,11 @@ class mrpNestedModel2:
         self.higherOrderEffectsLabels = higherOrderEffectsLabels
 
         N       = uniq_survey_df2['n'].values
-        outcome = uniq_survey_df2["Success"].values
+        if poll2.isDichotomous:
+            outcome = uniq_survey_df2["Success"].values
+        else:
+            outcome = uniq_survey_df2[poll2.outcome].values
+
 
         data["nCellSample"] = len(uniq_survey_df2)
         dataBlock.append("  int<lower = 1> nCellSample;")
@@ -220,6 +224,11 @@ class mrpNestedModel2:
             data["n"+effects[eff].label] = effects[eff].ncat
             dataBlock.append("  int<lower = 1> "+"n"+effects[eff].label+";")
 
+        if infVar is not None:
+            infEff2 = allEff2.copy() 
+            allEff2.remove(infVar)
+            
+            
         data["nEffects"] = len(allEff2)
         dataBlock.append("  int<lower = 1> nEffects;")
 
@@ -242,27 +251,55 @@ class mrpNestedModel2:
                 paramBlock.append("  vector"+"["+n+"]"+"delta_"+name+";")
                 paramBlock.append("  real <lower=0> "+"stdv_"+name+";")
                 tParamBlock.append("  vector"+"["+n+"]"+"a_"+name+";")
-        #Coefficients for the binomial model
-        name = "intercept"
-        paramBlock.append("  real "+name+";")
-        name = "eta"
-        tParamBlock.append("  vector[nCellSample]"+name+";")
-        for eff in allEff2:
-            name = effects[eff].label
-            n = "n"+effects[eff].label
-            paramBlock.append("  vector"+"["+n+"]"+"delta_"+name+";")
-            paramBlock.append("  real <lower=0> "+"stdv_"+name+";")
-            tParamBlock.append("  vector"+"["+n+"]"+"a_"+name+";")
-
+        
         tParamBlock.append("  matrix[nCellSample_z,nResponse_z] eta_z;")
         tParamBlock.append("  vector[nCellSample_z] zeros;")
         tParamBlock.append("  zeros = rep_vector(0,nCellSample_z);")
+        
+        if poll2.isDichotomous: 
+            #Coefficients for the binomial model
+            name = "intercept"
+            paramBlock.append("  real "+name+";")
+            name = "eta"
+            tParamBlock.append("  vector[nCellSample]"+name+";")
+            for eff in allEff2:
+                name = effects[eff].label
+                n = "n"+effects[eff].label
+                paramBlock.append("  vector"+"["+n+"]"+"delta_"+name+";")
+                paramBlock.append("  real <lower=0> "+"stdv_"+name+";")
+                tParamBlock.append("  vector"+"["+n+"]"+"a_"+name+";")
+
+        else: 
+            ## coefficients for the ordindal model
+            name = "tau"
+            paramBlock.append("  ordered[4] "+name+";")
+            name = "eta"
+            tParamBlock.append("  vector[nCellSample]"+name+";")
+            for eff in allEff2:
+                name = effects[eff].label
+                n = "n"+effects[eff].label
+                paramBlock.append("  vector"+"["+n+"]"+"delta_"+name+";")
+                paramBlock.append("  real <lower=0> "+"stdv_"+name+";")
+                tParamBlock.append("  vector"+"["+n+"]"+"a_"+name+";")
+              
+            ## coefficients for the inflation model
+            name = "intercept_inf"
+            paramBlock.append("  real "+name+";")
+            name = "eta_inf"    
+            tParamBlock.append("  vector[nCellSample]"+name+";")
+            for eff in infEff2:
+                name = effects[eff].label
+                n = "n"+effects[eff].label
+                paramBlock.append("  vector"+"["+n+"]"+"delta_"+name+"_inf;")
+                paramBlock.append("  real <lower=0> "+"stdv_"+name+"_inf;")
+                tParamBlock.append("  vector"+"["+n+"]"+"a_"+name+"_inf;")
+            
 
         #Specify non centered parametrizations
         #Coefficients for the multinomial model
         tParamBlock.append("  eta_z[:,1] = zeros;")
         for i in self.poll.outcome[1:]:
-            etaStr = "  eta_z[:,"+str(i)+"] = "
+            etaStr = "  eta_z[:,"+str(i)+"] =  intercept_z_" + str(i)
             for j,eff in enumerate(allEff):
                 name = effects[eff].label+"_z_"+str(i)
                 tParamBlock.append("  a_"+name+"= stdv_"+name+" * delta_"+name+";")
@@ -270,16 +307,40 @@ class mrpNestedModel2:
                 if j + 1 < len(allEff):
                     etaStr += " + "
             tParamBlock.append(etaStr+";")
-        #Coefficients for the binomial model
-        etaStr = "  eta = "
-        for j,eff in enumerate(allEff2):
-            name = effects[eff].label
-            tParamBlock.append("  a_"+name+"= stdv_"+name+" * delta_"+name+";")
-            etaStr += "a_"+name+"[indexes[:,"+str(j+1)+"]]"
-            if j + 1 < len(allEff2):
-                etaStr += " + "
-        tParamBlock.append(etaStr+";")
-
+            
+        if poll2.isDichotomous: 
+            #Coefficients for the binomial model
+            etaStr = "  eta = intercept"
+            for j,eff in enumerate(allEff2):
+                name = effects[eff].label
+                tParamBlock.append("  a_"+name+"= stdv_"+name+" * delta_"+name+";")
+                etaStr += "a_"+name+"[indexes[:,"+str(j+1)+"]]"
+                if j + 1 < len(allEff2):
+                    etaStr += " + "
+            tParamBlock.append(etaStr+";")
+        else: 
+            #Coefficients for the ordinal model
+            etaStr = "  eta = "
+            for j,eff in enumerate(allEff2):
+                name = effects[eff].label
+                tParamBlock.append("  a_"+name+"= stdv_"+name+" * delta_"+name+";")
+                etaStr += "a_"+name+"[indexes[:,"+str(j+1)+"]]"
+                if j + 1 < len(allEff2):
+                    etaStr += " + "
+            tParamBlock.append(etaStr+";")
+            
+            #Coefficients for the inflation model
+            etaStr = "  eta_inf = intercept_inf"
+            for j,eff in enumerate(infEff2):
+                name = effects[eff].label
+                tParamBlock.append("  a_"+name+"_inf= stdv_"+name+"_inf * delta_"+name+"_inf;")
+                etaStr += "a_"+name+"_inf[indexes[:,"+str(j+1)+"]]"
+                if j + 1 < len(infEff2):
+                    etaStr += " + "
+            tParamBlock.append(etaStr+";")
+            
+            
+            
         paramBlock.append("}")
         tParamBlock.append("}")
 
@@ -293,19 +354,43 @@ class mrpNestedModel2:
                 name = effects[eff].label+"_z_"+str(i)
                 modelBlock.append("  delta_"+name+" ~ normal(0,1);")
                 modelBlock.append("  stdv_"+name+" ~ normal(0,1);")
-        #Coefficients for the binomial model
-        name = "intercept"
-        modelBlock.append("  "+name+" ~ normal(0,100);")
-        for eff in allEff:
-            name = effects[eff].label
-            modelBlock.append("  delta_"+name+" ~ normal(0,1);")
-            modelBlock.append("  stdv_"+name+" ~ normal(0,1);")
+        
+        if poll2.isDichotomous: 
+            #Coefficients for the binomial model
+            name = "intercept"
+            modelBlock.append("  "+name+" ~ normal(0,100);")
+            for eff in allEff2:
+                name = effects[eff].label
+                modelBlock.append("  delta_"+name+" ~ normal(0,1);")
+                modelBlock.append("  stdv_"+name+" ~ normal(0,1);")
+        else:
+            ## coefficient for the ordinal model     
+            name = "tau"
+            modelBlock.append("  "+name+" ~ normal(0,100);")
+            for eff in allEff2:
+                name = effects[eff].label
+                modelBlock.append("  delta_"+name+" ~ normal(0,1);")
+                modelBlock.append("  stdv_"+name+" ~ normal(0,1);")
+            
+            
+            #### coeffcicient for the inflation model
+            name = "intercept_inf"
+            modelBlock.append("  "+name+" ~ normal(0,100);")
+            for eff in infEff2:
+                name = effects[eff].label
+                modelBlock.append("  delta_"+name+"_inf ~ normal(0,1);")
+                modelBlock.append("  stdv_"+name+"_inf ~ normal(0,1);")
 
         modelBlock.append("  for(n in 1:nCellSample_z)")
         modelBlock.append("    response_z[n,:]   ~ multinomial(softmax(to_vector(eta_z[n,:])));")
-        modelBlock.append("  for(n in 1:nCellSample)")
-        modelBlock.append("    response[n]   ~ binomial(N[n],inv_logit(eta[n]));")
-
+        
+        if poll2.isDichotomous:
+            modelBlock.append("  for(n in 1:nCellSample)")
+            modelBlock.append("    response[n]   ~ binomial(N[n],inv_logit(eta[n]));")
+        else: 
+            modelBlock.append("  for(n in 1:nCellSample)")
+            modelBlock.append("    response[n]   ~ binomial(N[n],inv_logit(eta[n]));")
+            
         modelBlock.append("}")
 
         gqBlock = ["generated quantities {"]

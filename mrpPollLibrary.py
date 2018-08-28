@@ -121,6 +121,7 @@ raceLabels   = ["Other Race","White","Black","Hispanic","Asian","DNR"]
 genderLabels = ["Male","Female"]
 usrLabels    = ["Urban","Suburban","Rural","DNR"]
 
+
 stateLabels = [s.abbr for s in us.states.STATES]
 stateLabels = list(np.sort(stateLabels))
 print(len(stateLabels))
@@ -157,7 +158,7 @@ def getMRPpoll(survey,question,dichot,drop,condense=True,additionalPredictors = 
     
         ageCodeCol = None
         df["age"] = 2016 - df["birthyr_baseline"]
-    
+
         zip2usr = pd.read_csv("zip2usr.csv",dtype={"ZIP_CODE":object})
         zip2usr = zip2usr[["ZIP_CODE","USR"]]
         zip2usr = zip2usr.rename(columns={"ZIP_CODE":"izip_baseline"})
