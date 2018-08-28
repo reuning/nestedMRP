@@ -28,7 +28,10 @@ intPoll.df = intPoll.df[~intPoll.df[question].isin(drop)]
 #intPoll.uniq_survey_df.to_csv("ideologyMultinomial.csv",index=False)
 
 
-poll    = getMRPpoll("VSG16",question,dichot,drop,additionalPredictors=[intOutcome, "newsint_2016"])
+poll    = getMRPpoll("VSG16",question,dichot,drop,
+                     additionalPredictors=[intOutcome, "newsint_2016"],
+                     additionalPredictorsDrop={intOutcome : [], 
+                                               "newsint_2016": [7] })
 poll.df["Success"] = poll.df[question]
 poll.df = poll.df[~poll.df[question].isin(drop)]
 

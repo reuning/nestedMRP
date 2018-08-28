@@ -130,7 +130,8 @@ print(stateLabels)
 stateDict = {abbr:[abbr] for abbr in stateLabels}
 
 
-def getMRPpoll(survey,question,dichot,drop,condense=True,additionalPredictors = None):
+def getMRPpoll(survey,question,dichot,drop,condense=True,additionalPredictors = None, 
+               additionalPredictorsDrop = None):
     validSurveys = ["VSG16"]
     if survey not in validSurveys:
         print(survey," is not a valid survey, try again")
@@ -198,6 +199,8 @@ def getMRPpoll(survey,question,dichot,drop,condense=True,additionalPredictors = 
         poll.mainEffectsLabels += additionalPredictors
         for eff in additionalPredictors:
             poll.df = poll.df[~poll.df[eff].isnull()]
+            if additionalPredictorsDrop is not None:
+                poll.df = poll.df[~poll.df[eff].isin(additionalPredictorsDrop[eff])]
             poll.df[eff] = poll.df[eff].astype(np.int64)
     if condense:
         poll.condense(question,False)

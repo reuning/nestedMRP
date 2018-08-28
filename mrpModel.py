@@ -234,7 +234,7 @@ class mrpNestedModel2:
             allEff2.remove(infVar)
             
             
-        data["nEffects"] = len(allEff2)
+        data["nEffects"] = len(infEff2)
         dataBlock.append("  int<lower = 1> nEffects;")
 
         data["indexes"] = indexes
