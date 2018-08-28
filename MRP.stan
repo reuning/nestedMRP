@@ -9,7 +9,8 @@ data {
   int indexes_z[nCellSample_z,nEffects_z];
   int<lower = 1> nCellSample;
   int N[nCellSample];
-  int response[nCellSample];
+  int<lower = 2> nResponse;
+  int response[nCellSample, nResponse];
   int<lower = 1> nAgeCat;
   int<lower = 1> nEduCat;
   int<lower = 1> nRaceCat;
@@ -83,6 +84,7 @@ parameters{
   real <lower=0> stdv_USRCat_z_5;
   vector[nIncCat]delta_IncCat_z_5;
   real <lower=0> stdv_IncCat_z_5;
+  ordered[4] tau;
   vector[nAgeCat]delta_AgeCat;
   real <lower=0> stdv_AgeCat;
   vector[nEduCat]delta_EduCat;
@@ -99,6 +101,7 @@ parameters{
   real <lower=0> stdv_IncCat;
   vector[nideo5_2016]delta_ideo5_2016;
   real <lower=0> stdv_ideo5_2016;
+  real intercept_inf;
   vector[nAgeCat]delta_AgeCat_inf;
   real <lower=0> stdv_AgeCat_inf;
   vector[nEduCat]delta_EduCat_inf;
@@ -148,9 +151,8 @@ transformed parameters{
   vector[nUSRCat]a_USRCat_z_5;
   vector[nIncCat]a_IncCat_z_5;
   matrix[nCellSample_z,nResponse_z] eta_z;
-  vector[nCellSample_z] zeros;
-  zeros = rep_vector(0,nCellSample_z);
-  vector[nCellSample]eta;
+  vector[nCellSample_z] zeros = rep_vector(0,nCellSample_z);
+  vector[nCellSample] eta;
   vector[nAgeCat]a_AgeCat;
   vector[nEduCat]a_EduCat;
   vector[nRaceCat]a_RaceCat;
@@ -177,7 +179,7 @@ transformed parameters{
   a_MarCat_z_2= stdv_MarCat_z_2 * delta_MarCat_z_2;
   a_USRCat_z_2= stdv_USRCat_z_2 * delta_USRCat_z_2;
   a_IncCat_z_2= stdv_IncCat_z_2 * delta_IncCat_z_2;
-  eta_z[:,2] = a_AgeCat_z_2[indexes_z[:,1]] + a_EduCat_z_2[indexes_z[:,2]] + a_RaceCat_z_2[indexes_z[:,3]] + a_GenderCat_z_2[indexes_z[:,4]] + a_MarCat_z_2[indexes_z[:,5]] + a_USRCat_z_2[indexes_z[:,6]] + a_IncCat_z_2[indexes_z[:,7]];
+  eta_z[:,2] =  intercept_z_2 + a_AgeCat_z_2[indexes_z[:,1]] + a_EduCat_z_2[indexes_z[:,2]] + a_RaceCat_z_2[indexes_z[:,3]] + a_GenderCat_z_2[indexes_z[:,4]] + a_MarCat_z_2[indexes_z[:,5]] + a_USRCat_z_2[indexes_z[:,6]] + a_IncCat_z_2[indexes_z[:,7]];
   a_AgeCat_z_3= stdv_AgeCat_z_3 * delta_AgeCat_z_3;
   a_EduCat_z_3= stdv_EduCat_z_3 * delta_EduCat_z_3;
   a_RaceCat_z_3= stdv_RaceCat_z_3 * delta_RaceCat_z_3;
@@ -185,7 +187,7 @@ transformed parameters{
   a_MarCat_z_3= stdv_MarCat_z_3 * delta_MarCat_z_3;
   a_USRCat_z_3= stdv_USRCat_z_3 * delta_USRCat_z_3;
   a_IncCat_z_3= stdv_IncCat_z_3 * delta_IncCat_z_3;
-  eta_z[:,3] = a_AgeCat_z_3[indexes_z[:,1]] + a_EduCat_z_3[indexes_z[:,2]] + a_RaceCat_z_3[indexes_z[:,3]] + a_GenderCat_z_3[indexes_z[:,4]] + a_MarCat_z_3[indexes_z[:,5]] + a_USRCat_z_3[indexes_z[:,6]] + a_IncCat_z_3[indexes_z[:,7]];
+  eta_z[:,3] =  intercept_z_3 + a_AgeCat_z_3[indexes_z[:,1]] + a_EduCat_z_3[indexes_z[:,2]] + a_RaceCat_z_3[indexes_z[:,3]] + a_GenderCat_z_3[indexes_z[:,4]] + a_MarCat_z_3[indexes_z[:,5]] + a_USRCat_z_3[indexes_z[:,6]] + a_IncCat_z_3[indexes_z[:,7]];
   a_AgeCat_z_4= stdv_AgeCat_z_4 * delta_AgeCat_z_4;
   a_EduCat_z_4= stdv_EduCat_z_4 * delta_EduCat_z_4;
   a_RaceCat_z_4= stdv_RaceCat_z_4 * delta_RaceCat_z_4;
@@ -193,7 +195,7 @@ transformed parameters{
   a_MarCat_z_4= stdv_MarCat_z_4 * delta_MarCat_z_4;
   a_USRCat_z_4= stdv_USRCat_z_4 * delta_USRCat_z_4;
   a_IncCat_z_4= stdv_IncCat_z_4 * delta_IncCat_z_4;
-  eta_z[:,4] = a_AgeCat_z_4[indexes_z[:,1]] + a_EduCat_z_4[indexes_z[:,2]] + a_RaceCat_z_4[indexes_z[:,3]] + a_GenderCat_z_4[indexes_z[:,4]] + a_MarCat_z_4[indexes_z[:,5]] + a_USRCat_z_4[indexes_z[:,6]] + a_IncCat_z_4[indexes_z[:,7]];
+  eta_z[:,4] =  intercept_z_4 + a_AgeCat_z_4[indexes_z[:,1]] + a_EduCat_z_4[indexes_z[:,2]] + a_RaceCat_z_4[indexes_z[:,3]] + a_GenderCat_z_4[indexes_z[:,4]] + a_MarCat_z_4[indexes_z[:,5]] + a_USRCat_z_4[indexes_z[:,6]] + a_IncCat_z_4[indexes_z[:,7]];
   a_AgeCat_z_5= stdv_AgeCat_z_5 * delta_AgeCat_z_5;
   a_EduCat_z_5= stdv_EduCat_z_5 * delta_EduCat_z_5;
   a_RaceCat_z_5= stdv_RaceCat_z_5 * delta_RaceCat_z_5;
@@ -201,7 +203,7 @@ transformed parameters{
   a_MarCat_z_5= stdv_MarCat_z_5 * delta_MarCat_z_5;
   a_USRCat_z_5= stdv_USRCat_z_5 * delta_USRCat_z_5;
   a_IncCat_z_5= stdv_IncCat_z_5 * delta_IncCat_z_5;
-  eta_z[:,5] = a_AgeCat_z_5[indexes_z[:,1]] + a_EduCat_z_5[indexes_z[:,2]] + a_RaceCat_z_5[indexes_z[:,3]] + a_GenderCat_z_5[indexes_z[:,4]] + a_MarCat_z_5[indexes_z[:,5]] + a_USRCat_z_5[indexes_z[:,6]] + a_IncCat_z_5[indexes_z[:,7]];
+  eta_z[:,5] =  intercept_z_5 + a_AgeCat_z_5[indexes_z[:,1]] + a_EduCat_z_5[indexes_z[:,2]] + a_RaceCat_z_5[indexes_z[:,3]] + a_GenderCat_z_5[indexes_z[:,4]] + a_MarCat_z_5[indexes_z[:,5]] + a_USRCat_z_5[indexes_z[:,6]] + a_IncCat_z_5[indexes_z[:,7]];
   a_AgeCat= stdv_AgeCat * delta_AgeCat;
   a_EduCat= stdv_EduCat * delta_EduCat;
   a_RaceCat= stdv_RaceCat * delta_RaceCat;
@@ -220,7 +222,7 @@ transformed parameters{
   a_IncCat_inf= stdv_IncCat_inf * delta_IncCat_inf;
   a_ideo5_2016_inf= stdv_ideo5_2016_inf * delta_ideo5_2016_inf;
   a_newsint_2016_inf= stdv_newsint_2016_inf * delta_newsint_2016_inf;
-  eta_inf = a_AgeCat_inf[indexes[:,1]] + a_EduCat_inf[indexes[:,2]] + a_RaceCat_inf[indexes[:,3]] + a_GenderCat_inf[indexes[:,4]] + a_MarCat_inf[indexes[:,5]] + a_USRCat_inf[indexes[:,6]] + a_IncCat_inf[indexes[:,7]] + a_ideo5_2016_inf[indexes[:,8]] + a_newsint_2016_inf[indexes[:,9]];
+  eta_inf = intercept_inf + a_AgeCat_inf[indexes[:,1]] + a_EduCat_inf[indexes[:,2]] + a_RaceCat_inf[indexes[:,3]] + a_GenderCat_inf[indexes[:,4]] + a_MarCat_inf[indexes[:,5]] + a_USRCat_inf[indexes[:,6]] + a_IncCat_inf[indexes[:,7]] + a_ideo5_2016_inf[indexes[:,8]] + a_newsint_2016_inf[indexes[:,9]];
 }
 model {
   intercept_z_2 ~ normal(0,100);
@@ -283,7 +285,7 @@ model {
   stdv_USRCat_z_5 ~ normal(0,1);
   delta_IncCat_z_5 ~ normal(0,1);
   stdv_IncCat_z_5 ~ normal(0,1);
-  intercept ~ normal(0,100);
+  tau ~ normal(0,100);
   delta_AgeCat ~ normal(0,1);
   stdv_AgeCat ~ normal(0,1);
   delta_EduCat ~ normal(0,1);
@@ -298,21 +300,53 @@ model {
   stdv_USRCat ~ normal(0,1);
   delta_IncCat ~ normal(0,1);
   stdv_IncCat ~ normal(0,1);
+  delta_ideo5_2016 ~ normal(0,1);
+  stdv_ideo5_2016 ~ normal(0,1);
+  intercept_inf ~ normal(0,100);
+  delta_AgeCat_inf ~ normal(0,1);
+  stdv_AgeCat_inf ~ normal(0,1);
+  delta_EduCat_inf ~ normal(0,1);
+  stdv_EduCat_inf ~ normal(0,1);
+  delta_RaceCat_inf ~ normal(0,1);
+  stdv_RaceCat_inf ~ normal(0,1);
+  delta_GenderCat_inf ~ normal(0,1);
+  stdv_GenderCat_inf ~ normal(0,1);
+  delta_MarCat_inf ~ normal(0,1);
+  stdv_MarCat_inf ~ normal(0,1);
+  delta_USRCat_inf ~ normal(0,1);
+  stdv_USRCat_inf ~ normal(0,1);
+  delta_IncCat_inf ~ normal(0,1);
+  stdv_IncCat_inf ~ normal(0,1);
+  delta_ideo5_2016_inf ~ normal(0,1);
+  stdv_ideo5_2016_inf ~ normal(0,1);
+  delta_newsint_2016_inf ~ normal(0,1);
+  stdv_newsint_2016_inf ~ normal(0,1);
   for(n in 1:nCellSample_z)
     response_z[n,:]   ~ multinomial(softmax(to_vector(eta_z[n,:])));
-  for(n in 1:nCellSample)
-    response[n]   ~ binomial(N[n],inv_logit(eta[n]));
+{
+  int tmp_total;
+  int tmp_resp[nResponse];
+    for(n in 1:nCellSample){
+      tmp_resp = response[n,:];
+      for(m in 1:nResponse){
+        while(tmp_resp[m] > 0){
+          if(m == 3){
+            target += log_sum_exp(bernoulli_logit_lpmf(0 | eta_inf[n]), bernoulli_logit_lpmf(1 | eta[n])  + ordered_logistic_lpmf( 3 |  eta[n], tau));
+          } else {
+            target += bernoulli_logit_lpmf(1 | eta[n])  + ordered_logistic_lpmf( m |  eta[n], tau);
+          tmp_resp[m] = tmp_resp[m] - 1;
+          }
+        }
+      }
+    }
+  }
 }
 generated quantities {
   simplex[nResponse_z] probs;
   vector[nResponse_z] etaTemp_z;
   vector[nResponse_z] etaTemp;
   int countsTemp[nResponse_z];
-  int totalYes;
-  int totalN;
-  real totalPct;
-  totalYes=0;
-  totalN=0;
+  int totalN=0;
   etaTemp_z[1]=0;
   for(i in 1:nCellPopulation){
     etaTemp_z[2] = a_AgeCat_z_2[indexes_Pop[i,1]] + a_EduCat_z_2[indexes_Pop[i,2]] + a_RaceCat_z_2[indexes_Pop[i,3]] + a_GenderCat_z_2[indexes_Pop[i,4]] + a_MarCat_z_2[indexes_Pop[i,5]] + a_USRCat_z_2[indexes_Pop[i,6]] + a_IncCat_z_2[indexes_Pop[i,7]];
@@ -327,9 +361,5 @@ generated quantities {
     etaTemp[3] = a_AgeCat[indexes_Pop[i,1]] + a_EduCat[indexes_Pop[i,2]] + a_RaceCat[indexes_Pop[i,3]] + a_GenderCat[indexes_Pop[i,4]] + a_MarCat[indexes_Pop[i,5]] + a_USRCat[indexes_Pop[i,6]] + a_IncCat[indexes_Pop[i,7]] + a_ideo5_2016[3];
     etaTemp[4] = a_AgeCat[indexes_Pop[i,1]] + a_EduCat[indexes_Pop[i,2]] + a_RaceCat[indexes_Pop[i,3]] + a_GenderCat[indexes_Pop[i,4]] + a_MarCat[indexes_Pop[i,5]] + a_USRCat[indexes_Pop[i,6]] + a_IncCat[indexes_Pop[i,7]] + a_ideo5_2016[4];
     etaTemp[5] = a_AgeCat[indexes_Pop[i,1]] + a_EduCat[indexes_Pop[i,2]] + a_RaceCat[indexes_Pop[i,3]] + a_GenderCat[indexes_Pop[i,4]] + a_MarCat[indexes_Pop[i,5]] + a_USRCat[indexes_Pop[i,6]] + a_IncCat[indexes_Pop[i,7]] + a_ideo5_2016[5];
-    for(j in 1:nResponse_z){
-      totalYes += binomial_rng(countsTemp[j],inv_logit(etaTemp[j]));
-    }
-  }
-  totalPct = 100.*totalYes/totalN;
+}
 }

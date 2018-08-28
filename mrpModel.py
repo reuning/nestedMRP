@@ -211,7 +211,12 @@ class mrpNestedModel2:
         dataBlock.append("  int N[nCellSample];")
 
         data["response"] = outcome
-        dataBlock.append("  int response[nCellSample];")
+        if poll2.isDichotomous:
+            dataBlock.append("  int response[nCellSample];")
+        else:
+            data["nResponse"] = len(poll2.outcome)
+            dataBlock.append("  int<lower = 2> nResponse;")
+            dataBlock.append("  int response[nCellSample, nResponse];")
 
         print("Outcome: ",np.sum(outcome,axis=0))
         print("N      : ",np.sum(N))
@@ -253,15 +258,15 @@ class mrpNestedModel2:
                 tParamBlock.append("  vector"+"["+n+"]"+"a_"+name+";")
         
         tParamBlock.append("  matrix[nCellSample_z,nResponse_z] eta_z;")
-        tParamBlock.append("  vector[nCellSample_z] zeros;")
-        tParamBlock.append("  zeros = rep_vector(0,nCellSample_z);")
+        tParamBlock.append("  vector[nCellSample_z] zeros = rep_vector(0,nCellSample_z);")
+        # tParamBlock.append("  zeros = rep_vector(0,nCellSample_z);")
         
         if poll2.isDichotomous: 
             #Coefficients for the binomial model
             name = "intercept"
             paramBlock.append("  real "+name+";")
             name = "eta"
-            tParamBlock.append("  vector[nCellSample]"+name+";")
+            tParamBlock.append("  vector[nCellSample] "+name+";")
             for eff in allEff2:
                 name = effects[eff].label
                 n = "n"+effects[eff].label
@@ -274,7 +279,7 @@ class mrpNestedModel2:
             name = "tau"
             paramBlock.append("  ordered[4] "+name+";")
             name = "eta"
-            tParamBlock.append("  vector[nCellSample]"+name+";")
+            tParamBlock.append("  vector[nCellSample] "+name+";")
             for eff in allEff2:
                 name = effects[eff].label
                 n = "n"+effects[eff].label
@@ -299,7 +304,7 @@ class mrpNestedModel2:
         #Coefficients for the multinomial model
         tParamBlock.append("  eta_z[:,1] = zeros;")
         for i in self.poll.outcome[1:]:
-            etaStr = "  eta_z[:,"+str(i)+"] =  intercept_z_" + str(i)
+            etaStr = "  eta_z[:,"+str(i)+"] =  intercept_z_" + str(i) + " + "
             for j,eff in enumerate(allEff):
                 name = effects[eff].label+"_z_"+str(i)
                 tParamBlock.append("  a_"+name+"= stdv_"+name+" * delta_"+name+";")
@@ -310,7 +315,7 @@ class mrpNestedModel2:
             
         if poll2.isDichotomous: 
             #Coefficients for the binomial model
-            etaStr = "  eta = intercept"
+            etaStr = "  eta = intercept + "
             for j,eff in enumerate(allEff2):
                 name = effects[eff].label
                 tParamBlock.append("  a_"+name+"= stdv_"+name+" * delta_"+name+";")
@@ -330,7 +335,7 @@ class mrpNestedModel2:
             tParamBlock.append(etaStr+";")
             
             #Coefficients for the inflation model
-            etaStr = "  eta_inf = intercept_inf"
+            etaStr = "  eta_inf = intercept_inf + "
             for j,eff in enumerate(infEff2):
                 name = effects[eff].label
                 tParamBlock.append("  a_"+name+"_inf= stdv_"+name+"_inf * delta_"+name+"_inf;")
@@ -388,21 +393,39 @@ class mrpNestedModel2:
             modelBlock.append("  for(n in 1:nCellSample)")
             modelBlock.append("    response[n]   ~ binomial(N[n],inv_logit(eta[n]));")
         else: 
-            modelBlock.append("  for(n in 1:nCellSample)")
-            modelBlock.append("    response[n]   ~ binomial(N[n],inv_logit(eta[n]));")
-            
-        modelBlock.append("}")
+            modelBlock.append("{")
+            modelBlock.append("  int tmp_total;")
+            modelBlock.append("  int tmp_resp[nResponse];")
+
+            modelBlock.append("    for(n in 1:nCellSample){")
+            modelBlock.append("      tmp_resp = response[n,:];")
+            modelBlock.append("      for(m in 1:nResponse){")
+            modelBlock.append("        while(tmp_resp[m] > 0){")
+            modelBlock.append("          if(m == 3){")
+            modelBlock.append("            target += log_sum_exp(bernoulli_logit_lpmf(0 | eta_inf[n]), bernoulli_logit_lpmf(1 | eta[n])  + ordered_logistic_lpmf( 3 |  eta[n], tau));")
+            modelBlock.append("          } else {")
+            modelBlock.append("            target += bernoulli_logit_lpmf(1 | eta[n])  + ordered_logistic_lpmf( m |  eta[n], tau);")
+            modelBlock.append("          tmp_resp[m] = tmp_resp[m] - 1;")
+            modelBlock.append("          }")
+            modelBlock.append("        }")
+            modelBlock.append("      }")
+            modelBlock.append("    }")
+            modelBlock.append("  }")
+            modelBlock.append("}")
 
         gqBlock = ["generated quantities {"]
         gqBlock.append("  simplex[nResponse_z] probs;")
         gqBlock.append("  vector[nResponse_z] etaTemp_z;")
         gqBlock.append("  vector[nResponse_z] etaTemp;")
         gqBlock.append("  int countsTemp[nResponse_z];")
-        gqBlock.append("  int totalYes;")
-        gqBlock.append("  int totalN;")
-        gqBlock.append("  real totalPct;")
-        gqBlock.append("  totalYes=0;")
-        gqBlock.append("  totalN=0;")
+        gqBlock.append("  int totalN=0;")
+
+        if poll2.isDichotomous:
+            gqBlock.append("  int totalYes;")
+            gqBlock.append("  real totalPct;")
+            gqBlock.append("  totalYes=0;")
+        #else:
+
         gqBlock.append("  etaTemp_z[1]=0;")
         gqBlock.append("  for(i in 1:nCellPopulation){")
         for i in self.poll.outcome[1:]:
@@ -427,11 +450,17 @@ class mrpNestedModel2:
                 if j + 1 < len(allEff2):
                     etaStr += " + "
             gqBlock.append(etaStr+";")
-        gqBlock.append("    for(j in 1:nResponse_z){")
-        gqBlock.append("      totalYes += binomial_rng(countsTemp[j],inv_logit(etaTemp[j]));")
-        gqBlock.append("    }")
-        gqBlock.append("  }")
-        gqBlock.append("  totalPct = 100.*totalYes/totalN;")
+        if poll2.isDichotomous:
+            gqBlock.append("    for(j in 1:nResponse_z){")
+            gqBlock.append("      totalYes += binomial_rng(countsTemp[j],inv_logit(etaTemp[j]));")
+            gqBlock.append("    }")
+            gqBlock.append("  }")
+            gqBlock.append("  totalPct = 100.*totalYes/totalN;")
+        #else:
+        
+        gqBlock.append("}")
+
+            
 
         gqBlock.append("}")
         with open("MRP.stan","w") as f:
