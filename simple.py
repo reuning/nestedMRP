@@ -3,6 +3,7 @@ import os
 import sys
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 import pystan
 from mrpPollLibrary import getMRPpoll
 from mrpModel import mrpNestedModel2
@@ -50,5 +51,14 @@ stateModel = mrpNestedModel2(intPoll,poll,1,intOutcome, infVar="newsint_2016")
 pystan.misc.stan_rdump(stateModel.data, "data.R")
 sm = pystan.StanModel(file='MRP.stan')
 fit = sm.sampling(data=stateModel.data, iter=2000, chains=2,
-                  n_jobs=1)
+                  n_jobs=2)
 print(fit)
+
+sums = fit.summary()
+
+eta_infM = pd.Series(fit['eta_inf'].mean(0))
+eta_infSE = pd.Series(fit['eta_inf'].std(0))
+
+
+
+

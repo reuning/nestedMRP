@@ -331,9 +331,9 @@ model {
       for(m in 1:nResponse){
         while(tmp_resp[m] > 0){
           if(m == 3){
-            target += log_sum_exp(bernoulli_logit_lpmf(0 | eta_inf[n]), bernoulli_logit_lpmf(1 | eta[n])  + ordered_logistic_lpmf( 3 |  eta[n], tau));
+            target += log_sum_exp(bernoulli_logit_lpmf(0 | eta_inf[n]), bernoulli_logit_lpmf(1 | eta_inf[n])  + ordered_logistic_lpmf( 3 |  eta[n], tau));
           } else {
-            target += bernoulli_logit_lpmf(1 | eta[n])  + ordered_logistic_lpmf( m |  eta[n], tau);
+            target += bernoulli_logit_lpmf(1 | eta_inf[n])  + ordered_logistic_lpmf( m |  eta[n], tau);
           }
           tmp_resp[m] = tmp_resp[m] - 1;
         }
