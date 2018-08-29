@@ -49,5 +49,6 @@ stateModel = mrpNestedModel2(intPoll,poll,1,intOutcome, infVar="newsint_2016")
 
 pystan.misc.stan_rdump(stateModel.data, "data.R")
 sm = pystan.StanModel(file='MRP.stan')
-fit = sm.sampling(data=stateModel.data, iter=1000, chains=4)
+fit = sm.sampling(data=stateModel.data, iter=2000, chains=2,
+                  n_jobs=1)
 print(fit)
