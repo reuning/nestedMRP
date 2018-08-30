@@ -56,9 +56,15 @@ print(fit)
 
 sums = fit.summary()
 
+rhat = sums['summary'][:,9]
+rhat = rhat[~np.isnan(rhat)]
+plt.hist(rhat)
+
 eta_infM = pd.Series(fit['eta_inf'].mean(0))
 eta_infSE = pd.Series(fit['eta_inf'].std(0))
 
+etaM = pd.Series(fit['eta'].mean(0))
+etaSE = pd.Series(fit['eta'].std(0))
 
 
 
