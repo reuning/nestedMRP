@@ -335,7 +335,7 @@ model {
           } else {
             target += bernoulli_logit_lpmf(1 | eta_inf[n])  + ordered_logistic_lpmf( m |  eta[n], tau);
           }
-          tmp_resp[m] = tmp_resp[m] - 1;
+          tmp_resp[m] -=  1;
         }
       }
     }
@@ -347,6 +347,9 @@ generated quantities {
   vector[nResponse_z] etaTemp;
   int countsTemp[nResponse_z];
   int totalN=0;
+  int totalOut[nResponse];
+  vector[nResponse] totalPct;
+  int tmpOut;
   etaTemp_z[1]=0;
   for(i in 1:nCellPopulation){
     etaTemp_z[2] = a_AgeCat_z_2[indexes_Pop[i,1]] + a_EduCat_z_2[indexes_Pop[i,2]] + a_RaceCat_z_2[indexes_Pop[i,3]] + a_GenderCat_z_2[indexes_Pop[i,4]] + a_MarCat_z_2[indexes_Pop[i,5]] + a_USRCat_z_2[indexes_Pop[i,6]] + a_IncCat_z_2[indexes_Pop[i,7]];
@@ -361,5 +364,13 @@ generated quantities {
     etaTemp[3] = a_AgeCat[indexes_Pop[i,1]] + a_EduCat[indexes_Pop[i,2]] + a_RaceCat[indexes_Pop[i,3]] + a_GenderCat[indexes_Pop[i,4]] + a_MarCat[indexes_Pop[i,5]] + a_USRCat[indexes_Pop[i,6]] + a_IncCat[indexes_Pop[i,7]] + a_ideo5_2016[3];
     etaTemp[4] = a_AgeCat[indexes_Pop[i,1]] + a_EduCat[indexes_Pop[i,2]] + a_RaceCat[indexes_Pop[i,3]] + a_GenderCat[indexes_Pop[i,4]] + a_MarCat[indexes_Pop[i,5]] + a_USRCat[indexes_Pop[i,6]] + a_IncCat[indexes_Pop[i,7]] + a_ideo5_2016[4];
     etaTemp[5] = a_AgeCat[indexes_Pop[i,1]] + a_EduCat[indexes_Pop[i,2]] + a_RaceCat[indexes_Pop[i,3]] + a_GenderCat[indexes_Pop[i,4]] + a_MarCat[indexes_Pop[i,5]] + a_USRCat[indexes_Pop[i,6]] + a_IncCat[indexes_Pop[i,7]] + a_ideo5_2016[5];
-}
+    for(j in 1:nResponse_z){
+      while(countsTemp[j] > 0){
+        tmpOut = ordered_logistic_rng(etaTemp[j], tau);
+        totalOut[tmpOut] = totalOut[tmpOut] + 1 ;
+        countsTemp[j] -=  1;
+      }
+    }
+  }
+  totalPct = 100 * (to_vector(totalOut)/totalN);
 }

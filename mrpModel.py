@@ -406,7 +406,7 @@ class mrpNestedModel2:
             modelBlock.append("          } else {")
             modelBlock.append("            target += bernoulli_logit_lpmf(1 | eta_inf[n])  + ordered_logistic_lpmf( m |  eta[n], tau);")
             modelBlock.append("          }")
-            modelBlock.append("          tmp_resp[m] = tmp_resp[m] - 1;")
+            modelBlock.append("          tmp_resp[m] -=  1;")
             modelBlock.append("        }")
             modelBlock.append("      }")
             modelBlock.append("    }")
@@ -424,7 +424,10 @@ class mrpNestedModel2:
             gqBlock.append("  int totalYes;")
             gqBlock.append("  real totalPct;")
             gqBlock.append("  totalYes=0;")
-        #else:
+        else:
+            gqBlock.append("  int totalOut[nResponse];")
+            gqBlock.append("  vector[nResponse] totalPct;")
+            gqBlock.append("  int tmpOut;")
 
         gqBlock.append("  etaTemp_z[1]=0;")
         gqBlock.append("  for(i in 1:nCellPopulation){")
@@ -456,10 +459,17 @@ class mrpNestedModel2:
             gqBlock.append("    }")
             gqBlock.append("  }")
             gqBlock.append("  totalPct = 100.*totalYes/totalN;")
-        #else:
-        
-        gqBlock.append("}")
-
+        else:
+            gqBlock.append("    for(j in 1:nResponse_z){")
+            gqBlock.append("      while(countsTemp[j] > 0){")
+            gqBlock.append("        tmpOut = ordered_logistic_rng(etaTemp[j], tau);")
+            gqBlock.append("        totalOut[tmpOut] = totalOut[tmpOut] + 1 ;")
+            gqBlock.append("        countsTemp[j] -=  1;")
+            gqBlock.append("      }")
+            gqBlock.append("    }")
+            gqBlock.append("  }")
+            gqBlock.append("  totalPct = 100 * (to_vector(totalOut)/totalN);")
+            
             
 
         gqBlock.append("}")
