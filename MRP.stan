@@ -342,13 +342,14 @@ model {
   }
 }
 generated quantities {
-  simplex[nResponse_z] probs;
+  simplex[nResponse_z] probs_z;
   vector[nResponse_z] etaTemp_z;
   vector[nResponse_z] etaTemp;
   int countsTemp[nResponse_z];
   int totalN=0;
-  int totalOut[nResponse];
+  vector[nResponse] totalOut = rep_vector(0, nResponse);
   vector[nResponse] totalPct;
+  vector[nResponse] probsTmp;
   int tmpOut;
   etaTemp_z[1]=0;
   for(i in 1:nCellPopulation){
@@ -356,8 +357,8 @@ generated quantities {
     etaTemp_z[3] = a_AgeCat_z_3[indexes_Pop[i,1]] + a_EduCat_z_3[indexes_Pop[i,2]] + a_RaceCat_z_3[indexes_Pop[i,3]] + a_GenderCat_z_3[indexes_Pop[i,4]] + a_MarCat_z_3[indexes_Pop[i,5]] + a_USRCat_z_3[indexes_Pop[i,6]] + a_IncCat_z_3[indexes_Pop[i,7]];
     etaTemp_z[4] = a_AgeCat_z_4[indexes_Pop[i,1]] + a_EduCat_z_4[indexes_Pop[i,2]] + a_RaceCat_z_4[indexes_Pop[i,3]] + a_GenderCat_z_4[indexes_Pop[i,4]] + a_MarCat_z_4[indexes_Pop[i,5]] + a_USRCat_z_4[indexes_Pop[i,6]] + a_IncCat_z_4[indexes_Pop[i,7]];
     etaTemp_z[5] = a_AgeCat_z_5[indexes_Pop[i,1]] + a_EduCat_z_5[indexes_Pop[i,2]] + a_RaceCat_z_5[indexes_Pop[i,3]] + a_GenderCat_z_5[indexes_Pop[i,4]] + a_MarCat_z_5[indexes_Pop[i,5]] + a_USRCat_z_5[indexes_Pop[i,6]] + a_IncCat_z_5[indexes_Pop[i,7]];
-    probs = softmax(etaTemp_z);
-    countsTemp = multinomial_rng(probs,N_Pop[i]);
+    probs_z = softmax(etaTemp_z);
+    countsTemp = multinomial_rng(probs_z,N_Pop[i]);
     totalN += N_Pop[i];
     etaTemp[1] = a_AgeCat[indexes_Pop[i,1]] + a_EduCat[indexes_Pop[i,2]] + a_RaceCat[indexes_Pop[i,3]] + a_GenderCat[indexes_Pop[i,4]] + a_MarCat[indexes_Pop[i,5]] + a_USRCat[indexes_Pop[i,6]] + a_IncCat[indexes_Pop[i,7]] + a_ideo5_2016[1];
     etaTemp[2] = a_AgeCat[indexes_Pop[i,1]] + a_EduCat[indexes_Pop[i,2]] + a_RaceCat[indexes_Pop[i,3]] + a_GenderCat[indexes_Pop[i,4]] + a_MarCat[indexes_Pop[i,5]] + a_USRCat[indexes_Pop[i,6]] + a_IncCat[indexes_Pop[i,7]] + a_ideo5_2016[2];
@@ -365,11 +366,12 @@ generated quantities {
     etaTemp[4] = a_AgeCat[indexes_Pop[i,1]] + a_EduCat[indexes_Pop[i,2]] + a_RaceCat[indexes_Pop[i,3]] + a_GenderCat[indexes_Pop[i,4]] + a_MarCat[indexes_Pop[i,5]] + a_USRCat[indexes_Pop[i,6]] + a_IncCat[indexes_Pop[i,7]] + a_ideo5_2016[4];
     etaTemp[5] = a_AgeCat[indexes_Pop[i,1]] + a_EduCat[indexes_Pop[i,2]] + a_RaceCat[indexes_Pop[i,3]] + a_GenderCat[indexes_Pop[i,4]] + a_MarCat[indexes_Pop[i,5]] + a_USRCat[indexes_Pop[i,6]] + a_IncCat[indexes_Pop[i,7]] + a_ideo5_2016[5];
     for(j in 1:nResponse_z){
-      while(countsTemp[j] > 0){
-        tmpOut = ordered_logistic_rng(etaTemp[j], tau);
-        totalOut[tmpOut] = totalOut[tmpOut] + 1 ;
-        countsTemp[j] -=  1;
-      }
+      probsTmp[1] = 1 - inv_logit(etaTemp[j] - tau[1]);   
+      probsTmp[2] = inv_logit(etaTemp[j] - tau[1]) - inv_logit(etaTemp[j] - tau[2]);
+      probsTmp[3] = inv_logit(etaTemp[j] - tau[2]) - inv_logit(etaTemp[j] - tau[3]);
+      probsTmp[4] = inv_logit(etaTemp[j] - tau[3]) - inv_logit(etaTemp[j] - tau[4]);
+      probsTmp[5] = inv_logit(etaTemp[j] - tau[4])  - 0; 
+      totalOut += probsTmp * countsTemp[j];
     }
   }
   totalPct = 100 * (to_vector(totalOut)/totalN);

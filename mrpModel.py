@@ -414,7 +414,7 @@ class mrpNestedModel2:
             modelBlock.append("}")
 
         gqBlock = ["generated quantities {"]
-        gqBlock.append("  simplex[nResponse_z] probs;")
+        gqBlock.append("  simplex[nResponse_z] probs_z;")
         gqBlock.append("  vector[nResponse_z] etaTemp_z;")
         gqBlock.append("  vector[nResponse_z] etaTemp;")
         gqBlock.append("  int countsTemp[nResponse_z];")
@@ -425,8 +425,9 @@ class mrpNestedModel2:
             gqBlock.append("  real totalPct;")
             gqBlock.append("  totalYes=0;")
         else:
-            gqBlock.append("  int totalOut[nResponse];")
+            gqBlock.append("  vector[nResponse] totalOut = rep_vector(0, nResponse);")
             gqBlock.append("  vector[nResponse] totalPct;")
+            gqBlock.append("  vector[nResponse] probsTmp;")
             gqBlock.append("  int tmpOut;")
 
         gqBlock.append("  etaTemp_z[1]=0;")
@@ -439,8 +440,8 @@ class mrpNestedModel2:
                 if j + 1 < len(allEff):
                     etaStr += " + "
             gqBlock.append(etaStr+";")
-        gqBlock.append("    probs = softmax(etaTemp_z);")
-        gqBlock.append("    countsTemp = multinomial_rng(probs,N_Pop[i]);")
+        gqBlock.append("    probs_z = softmax(etaTemp_z);")
+        gqBlock.append("    countsTemp = multinomial_rng(probs_z,N_Pop[i]);")
         gqBlock.append("    totalN += N_Pop[i];")
         for i in self.poll.outcome:
             etaStr = "    etaTemp["+str(i)+"] = "
@@ -461,11 +462,15 @@ class mrpNestedModel2:
             gqBlock.append("  totalPct = 100.*totalYes/totalN;")
         else:
             gqBlock.append("    for(j in 1:nResponse_z){")
-            gqBlock.append("      while(countsTemp[j] > 0){")
-            gqBlock.append("        tmpOut = ordered_logistic_rng(etaTemp[j], tau);")
-            gqBlock.append("        totalOut[tmpOut] = totalOut[tmpOut] + 1 ;")
-            gqBlock.append("        countsTemp[j] -=  1;")
-            gqBlock.append("      }")
+            
+            gqBlock.append("      probsTmp[1] = 1 - inv_logit(etaTemp[j] - tau[1]);   ")
+            for i in range(2, len(poll2.outcome)):
+                gqBlock.append("      probsTmp[" + str(i) + "] = inv_logit(etaTemp[j] - tau[" +
+                                             str(i - 1) + "]) - inv_logit(etaTemp[j] - tau[" + 
+                                             str(i) + "]);")
+    
+            gqBlock.append("      probsTmp[5] = inv_logit(etaTemp[j] - tau[4])  - 0; ")
+            gqBlock.append("      totalOut += probsTmp * countsTemp[j];")
             gqBlock.append("    }")
             gqBlock.append("  }")
             gqBlock.append("  totalPct = 100 * (to_vector(totalOut)/totalN);")
